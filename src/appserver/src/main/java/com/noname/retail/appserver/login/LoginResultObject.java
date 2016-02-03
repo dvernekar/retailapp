@@ -1,15 +1,9 @@
-/*
-    Copyright (c) 1997-2013 Alcatel-Lucent. All Rights Reserved.
-    No part of this file may be reproduced, stored in a retrieval system,
-    or transmitted in any form or by any means, electronic, mechanical,
-    photocopying, or otherwise without the prior permission of Alcatel-Lucent.
- */
 package com.noname.retail.appserver.login;
 /**
  * Class to represent the returned data object after performing login api 
  * @version 1.0
- * @since Nov, 2013
- * @author Don Le
+ * @since 
+ * @author 
  *
  */
 public class LoginResultObject {
