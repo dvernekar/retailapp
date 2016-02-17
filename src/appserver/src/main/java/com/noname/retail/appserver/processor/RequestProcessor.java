@@ -1,42 +1,33 @@
+
 package com.noname.retail.appserver.processor;
 
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.WeakHashMap;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import org.atmosphere.cpr.AtmosphereResource;
 import org.atmosphere.cpr.AtmosphereResourceEvent;
 import org.atmosphere.cpr.AtmosphereResourceEventListenerAdapter;
 import org.atmosphere.cpr.Broadcaster;
-import org.atmosphere.cpr.BroadcasterFactory;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.context.request.async.DeferredResult;
 
 import com.noname.retail.appserver.controller.NGServerUtils;
-import com.noname.retail.appserver.exception.AsyncContextNotAvailableException;
-import com.noname.retail.appserver.exception.NgnmsServiceException;
+import com.noname.retail.appserver.exception.RetailServiceException;
 import com.noname.retail.appserver.exception.ServiceNotFoundException;
 import com.noname.retail.appserver.model.NGServerResponse;
 import com.noname.retail.appserver.model.ServiceRequest;
 import com.noname.retail.appserver.model.ServiceResponse;
-import com.noname.retail.logger.RetailLogger;
+import com.noname.retail.appserver.serviceclient.AsyncUserMgmtServiceImpl;
 import com.noname.retail.appserver.serviceclient.IAsyncService;
 import com.noname.retail.appserver.serviceclient.ISyncService;
+import com.noname.retail.logger.RetailLogger;
 import com.noname.retail.util.OVVersionUtil;
 
 
@@ -54,7 +45,7 @@ public class RequestProcessor implements IRequestProcessor {
 
 	private static Map<String, DeferredResult<NGServerResponse>> deferredResultMap = new HashMap<String, DeferredResult<NGServerResponse>>();
 
-	private static Map<String, Broadcaster> broadcasterMap = new HashMap<String, Broadcaster>();
+//	private static Map<String, Broadcaster> broadcasterMap = new HashMap<String, Broadcaster>();
 
 	private HashMap<String, Map<String, IAsyncService>> asynchServiceMap;
 
@@ -73,7 +64,7 @@ public class RequestProcessor implements IRequestProcessor {
 		this.synchServiceMap = synchServiceMap;
 	}
 
-	private WeakHashMap<Broadcaster,OnDisconnectListener> listenerMap = new WeakHashMap<Broadcaster,OnDisconnectListener>();
+//	private WeakHashMap<Broadcaster,OnDisconnectListener> listenerMap = new WeakHashMap<Broadcaster,OnDisconnectListener>();
 
 
 	/*
@@ -140,26 +131,36 @@ public class RequestProcessor implements IRequestProcessor {
 				UUID uid = UUID.randomUUID();
 				RetailLogger.debug(_logger,"RequestProcessor : processAsyncRequest : processing request with the request-id"+uid.toString());
 				deferredResultMap.put(uid.toString(), dr);
+				request.setVersion(OVVersionUtil.ORIGINAL_VERSION);
 
 				String serviceName = request.getServiceName();
+				System.out.println(" serviceName >>>>>>>>>>>>>> "+serviceName);
+				
+				System.out.println(" asynchServiceMap >>>>>>>>>>>>>> "+asynchServiceMap);
+				
+				
 
-				IAsyncService asalServices = OVVersionUtil.retrieveMatchProcessor(request.getVersion(), OVVersionUtil.getVersionHistory(), asynchServiceMap.get(serviceName));
-
+				/*IAsyncService asalServices = OVVersionUtil.retrieveMatchProcessor(request.getVersion(), OVVersionUtil.getVersionHistory(), asynchServiceMap.get(serviceName));
+				System.out.println(" asalServices >>>>>>>>>>>>>> "+asalServices.getClass().getName());
 				if (null == asalServices) {
 					RetailLogger.error(_logger,"RequestProcessor : processAsyncRequest : Service not found for the service name "+serviceName);
 					throw new ServiceNotFoundException("RequestProcessor : processAsyncRequest : Service not found for the service name "+serviceName);
 				}
-
+*/
+				IAsyncService asalServices  = null;
+				if(request.getServiceName().equals("usermgmt")){
+					asalServices = new AsyncUserMgmtServiceImpl();
+				}
 				request.setRequestID(uid.toString());
 
 				asalServices.processRequest(request);
 			}
 
-			catch (ServiceNotFoundException e) {
+			/*catch (ServiceNotFoundException e) {
 
 				RetailLogger.error(_logger,"Service is not found. ", e);
 
-			} catch (NgnmsServiceException e) {
+			}*/ catch (RetailServiceException e) {
 			
 				RetailLogger.error(_logger,"Error when proccessing request. ", e);
 			}
@@ -200,66 +201,7 @@ public class RequestProcessor implements IRequestProcessor {
 
 	}
 
-	/*
-	 * processing the Server sent event request (non-Javadoc)
-	 * A Broadcaster map is being prepared which stores the broadcaster references
-	 * corresponding to the URLs to which the response is to be returned back.
-	 * Atmosphere resource sent from the controller is passed to the Broadcaster
-	 * The service name is extracted from the service request
-	 * Using the service name service is picked from the asynchservice map
-	 * The request is passed to that particular service for processing.
-	 * 
-	 * @see
-	 * com.noname.retail.appserver.processor.IRequestProcessor#processSSERequest
-	 * (org.atmosphere.cpr.AtmosphereResource,
-	 * com.noname.retail.appserver.model.ServiceRequest)
-	 */
-	public void processSSERequest(AtmosphereResource atmoResource, ServiceRequest request) {
-
-		String requestUrl = request.getRequestUrl();
-		RetailLogger.info(_logger,"RequestProcessor : processSSERequest : processing request using with the url "+requestUrl);
-
-		Broadcaster broadcaster = broadcasterMap.get(requestUrl);
-		
-		//Restore SecurityContext
-		HttpSession session = atmoResource.getRequest().getSession(false);
-		SecurityContext securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
-		SecurityContextHolder.setContext(securityContext);
-		
-		if(broadcaster==null) {
-
-			broadcaster = BroadcasterFactory.getDefault().get();
-			broadcasterMap.put(requestUrl, broadcaster);
-		}
-
-		OnDisconnectListener listener =listenerMap.get(broadcaster);
-
-		if (listener==null){
-			listener = new OnDisconnectListener(broadcaster);
-			listenerMap.put(broadcaster,listener);
-		}
-
-		broadcaster.addAtmosphereResource(atmoResource);
-		atmoResource.addEventListener(listener);
-
-		try {
-			String serviceName = request.getServiceName();
-
-			 RetailLogger.info(_logger,"RequestProcessor : processSSERequest : serviceName from the SSEResponse " + serviceName);
-
-			IAsyncService asyncServices = OVVersionUtil.retrieveMatchProcessor(request.getVersion(), OVVersionUtil.getVersionHistory(), asynchServiceMap.get(serviceName));
-
-			asyncServices.processRequest(request);
-
-			
-		} catch (NgnmsServiceException ne) {
-			RetailLogger.error(_logger,"Error while processing the server sent event"+ne.getMessage());
-		} catch (Exception e) {
-			RetailLogger.error(_logger,"Error while processing the server sent event"+e.getMessage());
-		}
-
-	}
-
+	
 
 
 
@@ -322,10 +264,10 @@ public class RequestProcessor implements IRequestProcessor {
 				} 
 				else {
 					RetailLogger.error(_logger,"RequestProcessor : processResponse : response is null for the request-id  : "+ uid);
-					throw new NgnmsServiceException("Response received from Service is NULL");
+					throw new RetailServiceException("Response received from Service is NULL");
 				}
 			}
-			catch(NgnmsServiceException e){
+			catch(RetailServiceException e){
 				response.setData(e.getMessage());
 				processErrorResponse(response);
 			}finally{
@@ -334,7 +276,7 @@ public class RequestProcessor implements IRequestProcessor {
 			}
 		}
 		
-		/** handle async multi responses **/
+		/** handle async multi responses **//*
 		else if (response.getRequestType() == NGServerUtils.ASYNC_MULTI) {
 			AsyncContext ctx = asynchContextMap.get(uid);
 			try {				
@@ -362,10 +304,10 @@ public class RequestProcessor implements IRequestProcessor {
 						servletResponse.flushBuffer();				
 					} else {
 						// throw NGServiceException iso of generic exception
-						throw new NgnmsServiceException("Response received from Service is NULL");
+						throw new RetailServiceException("Response received from Service is NULL");
 					}
 				}
-			}  catch (NgnmsServiceException e) {
+			}  catch (RetailServiceException e) {
 				response.setData(e.getMessage());
 				processErrorResponse(response);
 			} catch (JsonGenerationException e) {
@@ -385,15 +327,15 @@ public class RequestProcessor implements IRequestProcessor {
 			}finally{
 				if (response.isFinal()) {
 					RetailLogger.debug(_logger,"RequestProcessor : processResponse : calling ctx.complete  for the request-id : "+uid);
-					/** close the context after receiving final response **/
+					*//** close the context after receiving final response **//*
 					ctx.complete();
-					/** deleting asynch context from the map after processing the response **/
+					*//** deleting asynch context from the map after processing the response **//*
 					asynchContextMap.remove(uid);
 				}
 			}
 
-		}
-		/** handle SSE responses **/
+		}*/
+		/** handle SSE responses **//*
 		else if (response.getRequestType() == NGServerUtils.ASYNC_SSE) {
 			try {
 				 Object data = response.getData();
@@ -406,7 +348,7 @@ public class RequestProcessor implements IRequestProcessor {
 				 response.setData(e.getMessage());
 				 processErrorResponse(response);
 			}
-		}
+		}*/
 
 	}
   
@@ -446,13 +388,13 @@ public class RequestProcessor implements IRequestProcessor {
 				}
 			}
 
-			else if (response.getRequestType() == NGServerUtils.ASYNC_SSE) {
+		/*	else if (response.getRequestType() == NGServerUtils.ASYNC_SSE) {
 				RetailLogger.info(_logger,"processing SSE response");
 				Broadcaster broadcaster = broadcasterMap.get(response
 						.getRequestUrl());
 				RetailLogger.info(_logger,"Broadcaster reference inside the processSSEresponse"+broadcaster);
 				broadcaster.broadcast("Error Occured while Server Sent event");
-			}
+			}*/
 
 		} catch (Exception e) {
 			RetailLogger.info(_logger,"ERROR: Occured in processing Error Response ");
@@ -460,54 +402,7 @@ public class RequestProcessor implements IRequestProcessor {
 		}
 	}
 	
-	/**
-	 * method to send response back to UI without processing further, if the provided input values are not valid
-	 * @param response
-	 * @param ctx
-	 * @param httpStatusCode
-	 */
-	public void processInvalidMultiRequest(ServiceResponse response,AsyncContext ctx,int httpStatusCode) {
-	try {
-			RetailLogger.debug(_logger,"processing multi-chunk response with asynchcontext = "+ ctx);
-			ObjectMapper jsonMapper = new ObjectMapper();
-			Object data = response.getData();
-			if (data != null) {
-				NGServerResponse resp = new NGServerResponse(response.getStatus(),httpStatusCode,response.getData().getClass().getSimpleName(),
-						response.getData());
-				String strResponse = jsonMapper.writeValueAsString(resp);
-				RetailLogger.debug(_logger,"RequestProcessor : processInvalidMultiRequest : JSON data to be writen on stream :"	+ strResponse);
-				ServletResponse servletResponse = ctx.getResponse();
-				servletResponse.setContentType("application/json");
-				PrintWriter writer = servletResponse.getWriter();
-				if (writer == null) {
-					throw new Exception("Writer is null in Servlet Response");
-				}
-				writer.write(strResponse);
-				writer.flush();
-				servletResponse.flushBuffer();
-				ctx.complete();
-
-			} else {
-				// throw NGServiceException iso of generic exception
-				throw new NgnmsServiceException("Response received from Service is NULL");
-			}
-
-		}  catch (NgnmsServiceException e) {
-			response.setData(e.getMessage());
-		} catch (JsonGenerationException e) {
-			response.setData(e.getMessage());
-		} catch (JsonMappingException e) {
-			response.setData(e.getMessage());
-		} catch (IOException e) {
-			response.setData(e.getMessage());
-		} catch (Exception e) {
-			e.printStackTrace();
-			response.setData(e.getMessage());
-
-		}
-
-	}
-
+	
 	
 	/**
 	 * method to return standard HTTP code based on status and type of operation
@@ -563,6 +458,13 @@ public class RequestProcessor implements IRequestProcessor {
 		}else{
 			return HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 		}
+	}
+
+	@Override
+	public void processSSERequest(AtmosphereResource atmosphere,
+			ServiceRequest request) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	

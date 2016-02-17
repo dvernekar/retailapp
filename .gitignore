@@ -30,3 +30,11 @@ proguard/
 
 # Android Studio captures folder
 captures/
+
+*/.settings/**
+*/target/**
+.project
+.classpath
+
+
+

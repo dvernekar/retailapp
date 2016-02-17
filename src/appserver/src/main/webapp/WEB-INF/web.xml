@@ -1,16 +1,133 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+<web-app xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
 	version="3.0">
 
+	
+	
+	
+	<!-- Spring Security -->
 	<filter>
 		<filter-name>springSecurityFilterChain</filter-name>
 		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<async-supported>true</async-supported>
+		<init-param>
+			<param-name>contextAttribute</param-name>
+			<param-value>org.springframework.web.servlet.FrameworkServlet.CONTEXT.atmoSpring</param-value>
+		</init-param>
 	</filter>
+
 	<filter-mapping>
 		<filter-name>springSecurityFilterChain</filter-name>
 		<url-pattern>/*</url-pattern>
+		<dispatcher>REQUEST</dispatcher> 
+		<dispatcher>ASYNC</dispatcher>
+		<dispatcher>ERROR</dispatcher>
 	</filter-mapping>
+	
+	
+	<servlet>
+		<servlet-name>atmoSpring</servlet-name>
+		<servlet-class>org.atmosphere.cpr.MeteorServlet</servlet-class>
+		
 
+		<init-param>
+			<!-- When MeteorServlet is used, this is the parameter that will be looked 
+				and all requests will be delegated to this servlet, Of course, since we are 
+				using, Spring MVC, we delegate to DispatcherServlet -->
+			<param-name>org.atmosphere.servlet</param-name>
+			<param-value>org.springframework.web.servlet.DispatcherServlet</param-value>
+		</init-param>
+
+		<!-- Bunch of Atmosphere specific properties -->
+		<init-param>
+			<param-name>org.atmosphere.cpr.broadcasterClass</param-name>
+			<param-value>org.atmosphere.cpr.DefaultBroadcaster</param-value>
+		</init-param>
+
+		<!-- Force Atmosphere to use stream when writing bytes. -->
+		<init-param>
+			<param-name>org.atmosphere.useStream</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		
+		
+        
+        <init-param>
+            <param-name>org.atmosphere.cpr.AtmosphereInterceptor</param-name>
+            <param-value>org.atmosphere.interceptor.SSEAtmosphereInterceptor</param-value>
+        </init-param>
+
+        <init-param>
+            <param-name>org.atmosphere.interceptor.SSEAtmosphereInterceptor.contentType</param-name>
+            <param-value>text/event-stream</param-value>
+        </init-param>
+        
+        <!-- Use this interceptor to prevent firewall/proxies from canceling the 
+            connection after a specific idle time -->
+        <init-param>
+            <param-name>org.atmosphere.cpr.AtmosphereInterceptor</param-name>
+            <param-value>org.atmosphere.interceptor.HeartbeatInterceptor</param-value>
+        </init-param>
+        <init-param>
+            <param-name>org.atmosphere.interceptor.HeartbeatInterceptor.heartbeatFrequencyInSeconds</param-name>
+            <param-value>30</param-value>
+        </init-param>
+
+        <init-param>
+            <param-name>org.atmosphere.cpr.AtmosphereInterceptor.disableDefaults</param-name>
+            <param-value>true</param-value>
+        </init-param>
+
+        <init-param>
+            <param-name>org.atmosphere.cpr.broadcasterCacheClass</param-name>
+            <param-value>org.atmosphere.cache.UUIDBroadcasterCache</param-value>
+        </init-param>
+
+        <init-param>
+            <param-name>org.atmosphere.cpr.broadcaster.shareableThreadPool</param-name>
+            <param-value>true</param-value>
+        </init-param>
+
+
+        <init-param>
+            <param-name>org.atmosphere.cpr.sessionSupport</param-name>
+            <param-value>true</param-value>
+        </init-param>
+		
+		<load-on-startup>1</load-on-startup>
+		<async-supported>true</async-supported>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>atmoSpring</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+
+	<!-- Context -->
+	<filter>
+		<filter-name>cacheControlFilterChain</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+		<async-supported>true</async-supported>
+			<init-param>
+			<param-name>contextAttribute</param-name>
+			<param-value>org.springframework.web.servlet.FrameworkServlet.CONTEXT.atmoSpring</param-value>
+		</init-param>
+	</filter>
+	<!-- End Context -->
+
+	<filter-mapping>
+		<filter-name>cacheControlFilterChain</filter-name>
+		<url-pattern>/api/*</url-pattern>
+	</filter-mapping>
+	
+	<!-- Session Listener for Webstart -->
+    
+    
+    <!-- Session timeout - 1 year -->
+	<session-config>
+        <session-timeout>15</session-timeout>
+    </session-config>
+    
+    
+	
 </web-app>

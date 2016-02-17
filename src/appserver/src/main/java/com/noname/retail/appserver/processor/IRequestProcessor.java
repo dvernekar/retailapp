@@ -1,10 +1,9 @@
+
 package com.noname.retail.appserver.processor;
 
 import javax.servlet.AsyncContext;
-import javax.servlet.http.HttpServletRequest;
 
 import org.atmosphere.cpr.AtmosphereResource;
-import org.atmosphere.cpr.Broadcaster;
 import org.springframework.web.context.request.async.DeferredResult;
 
 import com.noname.retail.appserver.model.NGServerResponse;
@@ -49,12 +48,6 @@ public interface IRequestProcessor {
 	public void processResponse(ServiceResponse response);
 	
 	
-	/**
-	 * method to send response back to UI without processing further, if the provided input values are not valid
-	 * @param response
-	 * @param ctx
-	 * @param httpStatusCode
-	 */
-	public void processInvalidMultiRequest(ServiceResponse response,AsyncContext ctx,int httpStatusCode);
+	
 	
 }

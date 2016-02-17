@@ -14,7 +14,7 @@
   <packaging>pom</packaging>
   
   <modules>
-   <module>usermgmt</module>
+   <module>usermgmt</module>   
   </modules>
   
 </project>
