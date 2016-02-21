@@ -32,11 +32,11 @@
                 <artifactId>retail-util</artifactId>
                 <version>${retail.version}</version>
        </dependency>
-       <dependency>
+       <!--dependency>
                  <groupId>com.noname.retail</groupId>
                  <artifactId>retail-dao</artifactId>
                  <version>${retail.version}</version>
-       </dependency>
+       </dependency-->
         <dependency>
                 <groupId>com.noname.retail</groupId>
   		<artifactId>usermgmt</artifactId>
