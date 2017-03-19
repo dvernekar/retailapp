@@ -3,3 +3,5 @@ App for to provide interface between retialer and whole saler. This application 
 
 Something to create conflicts
 Hu hahahaha
+adding anything to conflict with server
+
