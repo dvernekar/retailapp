@@ -18,7 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * This class has role as an intercepter to attach the Cache control to the response header of all REST APIs
  * The result, browsers will not cache the REST response objects and we can ensure the user always see the latest values.
- * @author nguyenthanhnhan
+ * @author 
  *
  */
 public class CacheControlInterceptor extends OncePerRequestFilter{

@@ -1,10 +1,312 @@
+--
+-- Host: localhost    Database: retailApp
+-- ------------------------------------------------------
+-- Server version       7.7.7
 
-#create database retail with user name root and password as retail
-use retail;
+CREATE DATABASE IF NOT EXISTS retailApp;
 
-CREATE TABLE `roles` (`id` int(6) NOT NULL AUTO_INCREMENT,`role` varchar(20) NOT NULL,PRIMARY KEY (`id`)) ;
-CREATE TABLE `users` (`id` int(6) NOT NULL AUTO_INCREMENT,`login` varchar(20) NOT NULL,`password` varchar(20) NOT NULL,PRIMARY KEY (`id`));
-CREATE TABLE `user_roles` (`user_id` int(6) NOT NULL,`role_id` int(6) NOT NULL, KEY `user` (`user_id`),KEY `role` (`role_id`));
+USE retailApp;
+
+
+--
+-- Table structure for table `city`
+--
+
+DROP TABLE IF EXISTS `city`;
+
+CREATE TABLE `city` (
+  `city_code` char(3) NOT NULL,
+  `name` varchar(25) NOT NULL,
+  `district` varchar(25) NOT NULL,
+  `state` varchar(25) NOT NULL,
+  `country` varchar(25) NOT NULL,
+  PRIMARY KEY (`city_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+
+--
+-- Table structure for table `address`
+--
+
+DROP TABLE IF EXISTS `address`;
+
+CREATE TABLE `address` (
+  `address_id` int(11) NOT NULL,
+  `line1` varchar(50) NOT NULL,
+  `line2` varchar(50) NOT NULL,
+  `line3` varchar(50) NOT NULL,
+  `city_code` char(3) NOT NULL,
+  `zip_code` int(11) NOT NULL,
+  PRIMARY KEY (`address_id`),
+  KEY `address_city` (`city_code`),
+  CONSTRAINT `address_city` FOREIGN KEY (`city_code`) REFERENCES `city` (`city_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+
+--
+-- Table structure for table `client_type`
+--
+
+DROP TABLE IF EXISTS `client_type`;
+
+CREATE TABLE `client_type` (
+  `id` int(11) NOT NULL,
+  `type` varchar(20) NOT NULL,
+  `description` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+--
+-- Table structure for table `industry`
+--
+
+DROP TABLE IF EXISTS `industry`;
+
+CREATE TABLE `industry` (
+  `id` int(11) NOT NULL,
+  `name` varchar(20) NOT NULL,
+  `desc` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+--
+-- Table structure for table `login_info`
+--
+
+DROP TABLE IF EXISTS `login_info`;
+
+CREATE TABLE `login_info` (
+  `id` int(11) NOT NULL,
+  `client_type_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `creation_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `is_delete` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `login_info_client_type` (`client_type_id`),
+  CONSTRAINT `login_info_client_type` FOREIGN KEY (`client_type_id`) REFERENCES `client_type` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+--
+-- Table structure for table `order_line_item`
+--
+
+DROP TABLE IF EXISTS `order_line_item`;
+
+CREATE TABLE `order_line_item` (
+  `item_id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `creation_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `updation_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `status_id` int(11) NOT NULL,
+  `line_item_price` int(11) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+DROP TABLE IF EXISTS `roles`;
+
+CREATE TABLE `roles` (
+  `id` int(6) NOT NULL AUTO_INCREMENT,
+  `role` varchar(20) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+ 
+
+
+--
+-- Table structure for table `user`
+--
+
+DROP TABLE IF EXISTS `user`;
+
+CREATE TABLE `user` (
+  `user_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_login` varchar(20) DEFAULT NULL,
+  `first_name` varchar(20) NOT NULL,
+  `middle_name` varchar(20) DEFAULT NULL,
+  `last_name` varchar(20) DEFAULT NULL,
+  `email` varchar(50) NOT NULL,
+  `password` varchar(50) NOT NULL,
+  `phone` varchar(15) NOT NULL,
+  `company_name` varchar(50) DEFAULT NULL,
+  `website` varchar(100) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL,
+  `is_delete` tinyint(1) NOT NULL,
+  `address_id` int(11) NOT NULL,
+  `creation_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `updation_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  CONSTRAINT `user_address` FOREIGN KEY (`address_id`) REFERENCES `address` (`address_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+--
+-- Table structure for table `user_roles`
+--
+DROP TABLE IF EXISTS `user_roles`;
+
+CREATE TABLE `user_roles` (
+  `user_id` int(6) NOT NULL,
+  `role_id` int(6) NOT NULL, 
+  KEY `user` (`user_id`),
+  KEY `role` (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+--
+-- Table structure for table `order`
+--
+
+DROP TABLE IF EXISTS `order`;
+
+CREATE TABLE `orders` (
+  `id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `order_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `required_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `shipped_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `address_id` int(11) NOT NULL,
+  `shipped_via` varchar(20) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `order_user` (`customer_id`),
+  KEY `order_address` (`address_id`),
+  CONSTRAINT `order_address` FOREIGN KEY (`address_id`) REFERENCES `address` (`address_id`),
+  CONSTRAINT `order_user` FOREIGN KEY (`customer_id`) REFERENCES `user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+/*
+--
+-- Table structure for table `product_category`
+--
+
+DROP TABLE IF EXISTS `product_category`;
+
+CREATE TABLE `product_category` (
+  `category_id` int(11) NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `description` varchar(100) NOT NULL,
+  PRIMARY KEY (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+*/
+
+--
+-- Table structure for table `product`
+--
+
+DROP TABLE IF EXISTS `product`;
+
+CREATE TABLE `product` (
+  `id` int(11) NOT NULL,
+  `suppleir_id` int(11) NOT NULL,
+  `image` int(11) NOT NULL,
+  `description` int(11) NOT NULL,
+  `price` int(11) NOT NULL,
+  `quantity_per_unit` int(11) NOT NULL,
+  `units_in_stock` int(11) NOT NULL,
+  `discontinued` tinyint(1) NOT NULL,
+  `units_on_order` int(11) NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `is_active` tinyint(1) NOT NULL,
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `procurement_status` varchar(20) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `product_user` (`suppleir_id`),
+  CONSTRAINT `product_user` FOREIGN KEY (`suppleir_id`) REFERENCES `user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+
+
+--
+-- Table structure for table `product_industry`
+--
+
+DROP TABLE IF EXISTS `product_industry`;
+
+CREATE TABLE `product_industry` (
+  `product_id` int(11) NOT NULL,
+  `industry_id` int(11) NOT NULL,
+  `create_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`product_id`,`industry_id`),
+  CONSTRAINT `industry_product` FOREIGN KEY (`industry_id`) REFERENCES `industry` (`id`),
+  CONSTRAINT `product_industry` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+/*
+--
+-- Table structure for table `supplier_product`
+--
+
+DROP TABLE IF EXISTS `supplier_product`;
+
+CREATE TABLE `supplier_product` (
+  `product_id` int(11) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `created_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `is_active` tinyint(1) NOT NULL,
+  `product_price` float NOT NULL,
+  `in_stock` int(11) NOT NULL,
+  PRIMARY KEY (`product_id`),
+  CONSTRAINT `product_supplier_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`),
+    CONSTRAINT `user_supplier_product` FOREIGN KEY (`supplier_id`) REFERENCES `user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+*/
+
+
+--
+-- Table structure for table `user_industry`
+--
+
+DROP TABLE IF EXISTS `user_industry`;
+
+CREATE TABLE `user_industry` (
+  `user_id` int(11) NOT NULL,
+  `industry_id` int(11) NOT NULL,
+  `creat_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY `user_industry_user` (`user_id`),
+  CONSTRAINT `user_industry_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`),
+  CONSTRAINT `user_industry_category` FOREIGN KEY (`industry_id`) REFERENCES `industry` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+/*
+--
+-- Table structure for table `user_roles`
+--
+
+DROP TABLE IF EXISTS `user_roles`;
+
+CREATE TABLE `user_roles` (
+  `user_id` int(6) NOT NULL,
+  `role_id` int(6) NOT NULL,
+  KEY `user` (`user_id`),
+  KEY `role` (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+
+--
+-- Table structure for table `user_type`
+--
+
+DROP TABLE IF EXISTS `user_type`;
+
+CREATE TABLE `user_type` (
+  `user_type_id` int(11) NOT NULL,
+  `user_type` varchar(20) NOT NULL,
+  `description` varchar(50) NOT NULL,
+  PRIMARY KEY (`user_type_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+*/
+
+#Insert default values for user and roles
+
 INSERT INTO retail.roles (role) VALUES ('admin'), ('moderator');   
-INSERT INTO retail.users (login, password) VALUES ('moder', '111111'), ('adm', '222222');   
+INSERT INTO retail.users (user_login, first_name, middle_name, last_name, email, password , phone, company_name, website, is_active, is_delete, address_id) VALUES ('moder', ‘m’, ‘rator’, ‘abc@abc.com’, ’111111’, ‘9845798457’, ‘Khisco’, ‘www.khisco.com’, TRUE, FALSE), (‘adm’, ‘a’, ‘strater’, ‘abc@abc.com’, ’222222’, ‘9845798457’, ‘Khisco’, ‘www.khisco.com’, TRUE, FALSE);  
 INSERT INTO retail.user_roles (user_id, role_id) VALUES (1, 2), (2, 1);  

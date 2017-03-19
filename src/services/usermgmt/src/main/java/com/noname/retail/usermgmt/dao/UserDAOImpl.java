@@ -23,8 +23,8 @@ public class UserDAOImpl implements UserDAO {
 
 	public User getUser(String login) {
 		List<User> userList = new ArrayList<User>();
-		Query query = openSession().createQuery("from User u where u.login = :login");
-		query.setParameter("login", login);
+		Query query = openSession().createQuery("from User u where u.user_login = :login");
+		query.setParameter("user_login", login);
 		userList = query.list();
 		if (userList.size() > 0)
 			return userList.get(0);
